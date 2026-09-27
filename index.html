@@ -1,0 +1,2234 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Spend Lens 2.0 - Ultimate Master Edition</title>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
+
+    <style>
+      :root {
+        --bg-main: #f4f7f6;
+        --bg-card: #ffffff;
+        --sidebar-bg: #0b1120;
+        --sidebar-text: #94a3b8;
+        --primary: #3b82f6;
+        --primary-hover: #2563eb;
+        --accent: #10b981;
+        --danger: #ef4444;
+        --warning: #f59e0b;
+        --text-main: #1e293b;
+        --text-muted: #64748b;
+        --border: #e2e8f0;
+        --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1),
+          0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        --radius: 12px;
+        --input-bg: #ffffff;
+      }
+
+      body.dark-theme {
+        --bg-main: #0f172a;
+        --bg-card: #1e293b;
+        --sidebar-bg: #020617;
+        --primary: #3b82f6;
+        --text-main: #f8fafc;
+        --text-muted: #94a3b8;
+        --border: #334155;
+        --input-bg: #0f172a;
+        --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.5);
+      }
+
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+        font-family: "Segoe UI", system-ui, sans-serif;
+      }
+      body {
+        background-color: var(--bg-main);
+        color: var(--text-main);
+        display: flex;
+        height: 100vh;
+        overflow: hidden;
+        transition: background-color 0.3s, color 0.3s;
+      }
+
+      /* Sidebar */
+      .sidebar {
+        width: 260px;
+        background-color: var(--sidebar-bg);
+        display: flex;
+        flex-direction: column;
+        flex-shrink: 0;
+        z-index: 20;
+        transition: background-color 0.3s;
+      }
+      .brand {
+        padding: 25px 20px;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+      }
+      .brand h1 {
+        font-size: 24px;
+        font-weight: 800;
+        background: linear-gradient(to right, #60a5fa, #34d399);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+      }
+      .brand p {
+        font-size: 11px;
+        color: #94a3b8;
+        margin-top: 5px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+      }
+
+      .nav-links {
+        padding: 20px 12px;
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        flex-grow: 1;
+        overflow-y: auto;
+      }
+      .nav-btn {
+        background: transparent;
+        color: var(--sidebar-text);
+        border: none;
+        padding: 14px 16px;
+        border-radius: 8px;
+        text-align: left;
+        font-size: 14px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: 0.2s;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+      }
+      .nav-btn:hover {
+        background-color: rgba(255, 255, 255, 0.1);
+        color: white;
+      }
+      .nav-btn.active {
+        background-color: var(--primary);
+        color: white;
+        box-shadow: 0 4px 6px rgba(59, 130, 246, 0.3);
+      }
+      .theme-toggle {
+        margin-top: auto;
+        padding: 20px 12px;
+        border-top: 1px solid rgba(255, 255, 255, 0.1);
+      }
+
+      /* Main Workspace */
+      .main-content {
+        flex-grow: 1;
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+      }
+      .top-header {
+        background-color: var(--bg-card);
+        padding: 15px 30px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        border-bottom: 1px solid var(--border);
+        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.02);
+        z-index: 10;
+        transition: background-color 0.3s, border-color 0.3s;
+      }
+      .period-controls {
+        display: flex;
+        align-items: center;
+        gap: 15px;
+      }
+      .period-controls label {
+        font-size: 13px;
+        font-weight: 700;
+        color: var(--text-muted);
+      }
+
+      input,
+      select,
+      button {
+        outline: none;
+        font-family: inherit;
+      }
+      input[type="number"],
+      input[type="text"],
+      input[type="password"],
+      input[type="time"],
+      select {
+        padding: 10px 14px;
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        font-size: 14px;
+        font-weight: 600;
+        transition: 0.2s;
+        background-color: var(--input-bg);
+        color: var(--text-main);
+      }
+      input:focus,
+      select:focus {
+        border-color: var(--primary);
+        box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
+      }
+
+      .btn {
+        padding: 10px 18px;
+        border-radius: 8px;
+        font-weight: 700;
+        cursor: pointer;
+        border: none;
+        transition: 0.2s;
+        font-size: 13px;
+      }
+      .btn-primary {
+        background-color: var(--primary);
+        color: white;
+        box-shadow: 0 2px 4px rgba(59, 130, 246, 0.2);
+      }
+      .btn-primary:hover {
+        background-color: var(--primary-hover);
+      }
+      .btn-accent {
+        background-color: var(--accent);
+        color: white;
+      }
+      .btn-accent:hover {
+        background-color: #059669;
+      }
+      .btn-danger {
+        background-color: var(--danger);
+        color: white;
+      }
+
+      .view-container {
+        flex-grow: 1;
+        padding: 25px;
+        overflow-y: auto;
+        position: relative;
+      }
+      .view-panel {
+        display: none;
+        animation: fadeIn 0.3s ease;
+      }
+      .view-panel.active {
+        display: block;
+      }
+      @keyframes fadeIn {
+        from {
+          opacity: 0;
+          transform: translateY(10px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+
+      .card {
+        background-color: var(--bg-card);
+        border-radius: var(--radius);
+        padding: 25px;
+        box-shadow: var(--shadow);
+        margin-bottom: 25px;
+        transition: background-color 0.3s;
+      }
+      .card-header {
+        font-size: 18px;
+        font-weight: 800;
+        margin-bottom: 20px;
+        color: var(--primary);
+        border-bottom: 2px solid var(--border);
+        padding-bottom: 12px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+
+      .dashboard-grid {
+        display: grid;
+        grid-template-columns: 1fr 380px;
+        gap: 25px;
+        align-items: start;
+      }
+      @media (max-width: 1250px) {
+        .dashboard-grid {
+          grid-template-columns: 1fr;
+        }
+      }
+
+      /* Spreadsheet */
+      .spreadsheet-container {
+        overflow: auto;
+        max-height: calc(100vh - 220px);
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        background: var(--bg-card);
+      }
+      .spreadsheet-table {
+        border-collapse: separate;
+        border-spacing: 0;
+        width: max-content;
+      }
+      .spreadsheet-table th,
+      .spreadsheet-table td {
+        border-right: 1px solid var(--border);
+        border-bottom: 1px solid var(--border);
+        padding: 4px;
+        min-width: 150px;
+      }
+      .spreadsheet-table th {
+        background-color: var(--bg-main);
+        color: var(--text-main);
+        font-weight: 800;
+        font-size: 11px;
+        padding: 12px 8px;
+        position: sticky;
+        top: 0;
+        z-index: 10;
+        text-align: center;
+      }
+      .spreadsheet-table th:first-child,
+      .spreadsheet-table td:first-child {
+        position: sticky;
+        left: 0;
+        background-color: var(--bg-main);
+        min-width: 60px;
+        z-index: 11;
+        border-right: 2px solid var(--border);
+        text-align: center;
+        font-weight: bold;
+      }
+      .spreadsheet-table th:first-child {
+        z-index: 12;
+      }
+      .spreadsheet-table th:last-child,
+      .spreadsheet-table td:last-child {
+        position: sticky;
+        right: 0;
+        background-color: var(--bg-main);
+        min-width: 120px;
+        z-index: 11;
+        border-left: 2px solid var(--border);
+        text-align: right;
+        padding-right: 15px;
+        color: var(--accent);
+        font-weight: 800;
+      }
+      .spreadsheet-table th:last-child {
+        z-index: 12;
+      }
+      .summary-row td {
+        background-color: var(--sidebar-bg) !important;
+        color: white !important;
+        font-weight: 800;
+        position: sticky;
+        bottom: 0;
+        z-index: 10;
+        text-align: right;
+        padding: 12px 8px;
+        font-family: monospace;
+        font-size: 14px;
+      }
+
+      .cell-input {
+        width: 100%;
+        border: 1px solid transparent;
+        border-radius: 4px;
+        padding: 8px;
+        font-size: 14px;
+        font-weight: 700;
+        text-align: right;
+        background: transparent;
+        color: var(--text-main);
+        transition: 0.2s;
+      }
+      .cell-input:focus {
+        background-color: rgba(59, 130, 246, 0.1);
+        border-color: var(--primary-light);
+      }
+
+      /* Stats & Budget */
+      .progress-bar-bg {
+        background-color: var(--border);
+        height: 16px;
+        border-radius: 10px;
+        overflow: hidden;
+        margin: 15px 0;
+      }
+      .progress-bar-fill {
+        background-color: var(--accent);
+        height: 100%;
+        width: 0%;
+        transition: width 0.4s ease, background-color 0.4s ease;
+      }
+      .budget-stats {
+        display: flex;
+        justify-content: space-between;
+        font-size: 13px;
+        font-weight: 700;
+        color: var(--text-muted);
+      }
+      .stats-box {
+        background: linear-gradient(135deg, #0f172a, #1e293b);
+        color: white;
+        padding: 22px;
+        border-radius: var(--radius);
+        box-shadow: var(--shadow);
+        margin-bottom: 25px;
+      }
+      .stats-box h3 {
+        font-size: 13px;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        color: #94a3b8;
+        margin-bottom: 18px;
+        border-bottom: 1px solid #334155;
+        padding-bottom: 6px;
+      }
+      .stat-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 12px;
+        padding-bottom: 8px;
+        border-bottom: 1px solid #334155;
+      }
+      .stat-row:last-child {
+        border-bottom: none;
+        margin-bottom: 0;
+        padding-bottom: 0;
+      }
+      .stat-val {
+        font-weight: 700;
+        font-size: 15px;
+        font-family: monospace;
+        color: #34d399;
+      }
+      .stat-val.highlight {
+        font-size: 20px;
+        color: #60a5fa;
+      }
+
+      /* Charts & Calendars */
+      .chart-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 20px;
+        margin-top: 20px;
+      }
+      .canvas-box {
+        background: var(--bg-main);
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        padding: 15px;
+        height: 320px;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        position: relative;
+      }
+      .yearly-table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 20px;
+        font-size: 14px;
+      }
+      .yearly-table th,
+      .yearly-table td {
+        border: 1px solid var(--border);
+        padding: 10px;
+        text-align: left;
+      }
+      .yearly-table th {
+        background-color: var(--bg-main);
+        font-weight: 800;
+        color: var(--primary);
+      }
+      .calendar-grid {
+        display: grid;
+        grid-template-columns: repeat(7, 1fr);
+        gap: 10px;
+      }
+      .cal-header {
+        text-align: center;
+        font-weight: 800;
+        color: var(--text-muted);
+        padding: 10px 0;
+        text-transform: uppercase;
+        font-size: 12px;
+      }
+      .cal-day {
+        background: var(--input-bg);
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        min-height: 90px;
+        padding: 10px;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        cursor: pointer;
+        transition: 0.2s;
+      }
+      .cal-day:hover {
+        border-color: var(--primary);
+        box-shadow: 0 4px 6px rgba(59, 130, 246, 0.1);
+        transform: translateY(-2px);
+      }
+      .day-num {
+        font-size: 16px;
+        font-weight: 800;
+        color: var(--text-main);
+      }
+      .day-val {
+        font-size: 13px;
+        font-weight: 700;
+        color: var(--accent);
+        text-align: right;
+        background: rgba(16, 185, 129, 0.1);
+        padding: 4px 8px;
+        border-radius: 4px;
+      }
+
+      /* AI & Tools */
+      .ai-chat-container {
+        display: flex;
+        flex-direction: column;
+        gap: 15px;
+      }
+      .quick-prompts {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+        margin-bottom: 10px;
+      }
+      .ai-response-box {
+        background: var(--bg-main);
+        border: 1px solid var(--border);
+        border-left: 4px solid var(--primary);
+        padding: 20px;
+        font-size: 14px;
+        line-height: 1.6;
+        border-radius: 0 8px 8px 0;
+        min-height: 150px;
+        max-height: 400px;
+        overflow-y: auto;
+        white-space: pre-wrap;
+        color: var(--text-main);
+      }
+
+      .calc-wrapper {
+        display: flex;
+        gap: 20px;
+      }
+      .calc-main {
+        flex: 2;
+      }
+      .calc-history {
+        flex: 1;
+        background: var(--bg-main);
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        padding: 15px;
+        display: flex;
+        flex-direction: column;
+        height: 380px;
+      }
+      .history-list {
+        flex-grow: 1;
+        overflow-y: auto;
+        font-family: monospace;
+        font-size: 13px;
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+      }
+      .history-item {
+        border-bottom: 1px dashed var(--border);
+        padding-bottom: 5px;
+        color: var(--text-muted);
+        text-align: right;
+      }
+      .calc-screen {
+        background: #0f172a;
+        color: #10b981;
+        text-align: right;
+        padding: 15px;
+        font-size: 28px;
+        font-family: monospace;
+        border-radius: 8px;
+        margin-bottom: 15px;
+        word-break: break-all;
+        min-height: 65px;
+        box-shadow: inset 0 2px 5px rgba(0, 0, 0, 0.3);
+      }
+      .calc-grid {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 10px;
+      }
+      .calc-btn {
+        background: var(--bg-main);
+        border: 1px solid var(--border);
+        padding: 15px;
+        border-radius: 8px;
+        font-weight: 800;
+        font-size: 16px;
+        cursor: pointer;
+        transition: 0.2s;
+        color: var(--text-main);
+      }
+      .calc-btn:hover {
+        background: var(--border);
+      }
+      .calc-btn.op {
+        background: rgba(59, 130, 246, 0.1);
+        color: var(--primary);
+      }
+      .calc-btn.eval {
+        background: var(--primary);
+        color: white;
+      }
+
+      .toast {
+        position: fixed;
+        bottom: 20px;
+        right: 20px;
+        background: #10b981;
+        color: white;
+        padding: 12px 24px;
+        border-radius: 8px;
+        font-weight: 700;
+        opacity: 0;
+        transition: opacity 0.3s;
+        z-index: 100;
+        pointer-events: none;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="sidebar">
+      <div class="brand">
+        <h1>Spend Lens 2.0</h1>
+        <p>Developed by Anshuman Behera</p>
+      </div>
+      <div class="nav-links">
+        <button class="nav-btn active" onclick="switchTab(this, 'view-matrix')">
+          📝 Matrix & Dashboard
+        </button>
+        <button class="nav-btn" onclick="switchTab(this, 'view-calendar')">
+          📅 Full Calendar
+        </button>
+        <button class="nav-btn" onclick="switchTab(this, 'view-yearly')">
+          📈 Yearly Analytics
+        </button>
+        <button class="nav-btn" onclick="switchTab(this, 'view-charts')">
+          📊 Monthly Charts
+        </button>
+        <button class="nav-btn" onclick="switchTab(this, 'view-fields')">
+          📋 Manage Categories
+        </button>
+        <button class="nav-btn" onclick="switchTab(this, 'view-gemini')">
+          🤖 AI Smart Advisor
+        </button>
+        <button class="nav-btn" onclick="switchTab(this, 'view-tools')">
+          🧮 Tools & Exports
+        </button>
+      </div>
+      <div class="theme-toggle">
+        <button
+          class="btn btn-primary"
+          style="width: 100%"
+          onclick="toggleTheme()"
+        >
+          🌗 Toggle Dark Mode
+        </button>
+      </div>
+    </div>
+
+    <div class="main-content">
+      <div class="top-header">
+        <div class="period-controls">
+          <div>
+            <label>Year:</label>
+            <input
+              type="number"
+              id="input-year"
+              value="2026"
+              style="width: 100px"
+              oninput="updatePeriod()"
+            />
+          </div>
+          <div>
+            <label>Month:</label>
+            <select id="select-month" onchange="updatePeriod()"></select>
+          </div>
+          <button class="btn btn-primary" onclick="jumpToToday()">
+            Jump to Today
+          </button>
+        </div>
+        <div>
+          <span
+            id="header-grand-total"
+            style="
+              font-size: 18px;
+              font-weight: 800;
+              color: var(--accent);
+              margin-right: 20px;
+            "
+            >0.00</span
+          >
+          <button class="btn btn-accent" onclick="forceSave()">
+            Save Database
+          </button>
+        </div>
+      </div>
+
+      <div class="view-container">
+        <div id="view-matrix" class="view-panel active">
+          <div class="dashboard-grid">
+            <div class="card" style="padding: 15px; margin-bottom: 0">
+              <div class="card-header" style="margin-bottom: 10px">
+                <span>Data Entry Matrix</span>
+                <span
+                  style="
+                    font-size: 12px;
+                    color: var(--text-muted);
+                    font-weight: 600;
+                  "
+                >
+                  ⌨️ Type text or numbers. Press <b>Enter</b> to drop down to
+                  the row below.
+                </span>
+              </div>
+              <div class="spreadsheet-container">
+                <table class="spreadsheet-table" id="matrix-table">
+                  <thead>
+                    <tr id="matrix-header"></tr>
+                  </thead>
+                  <tbody id="matrix-body"></tbody>
+                </table>
+              </div>
+            </div>
+
+            <div style="position: sticky; top: 0">
+              <div class="card" style="margin-bottom: 20px">
+                <div
+                  class="card-header"
+                  style="font-size: 15px; margin-bottom: 10px"
+                >
+                  Monthly Budget Tracker
+                </div>
+                <div
+                  style="
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: center;
+                  "
+                >
+                  <span
+                    style="
+                      font-size: 13px;
+                      font-weight: 700;
+                      color: var(--text-muted);
+                    "
+                    >Set Limit (<span class="currency-label">₹</span>):</span
+                  >
+                  <input
+                    type="number"
+                    id="budget-input"
+                    value="50000"
+                    onchange="updateBudget()"
+                    style="width: 120px; padding: 6px 10px; font-size: 14px"
+                  />
+                </div>
+                <div class="progress-bar-bg">
+                  <div id="budget-progress" class="progress-bar-fill"></div>
+                </div>
+                <div class="budget-stats">
+                  <span id="budget-spent">Spent: 0</span>
+                  <span id="budget-pct">0%</span>
+                  <span id="budget-rem">Rem: 50000</span>
+                </div>
+              </div>
+
+              <div class="stats-box">
+                <h3>Automated Deep Insights</h3>
+                <div class="stat-row">
+                  <span>Current Month Total:</span>
+                  <span class="stat-val highlight" id="stats-month-total"
+                    >0.00</span
+                  >
+                </div>
+                <div class="stat-row">
+                  <span>Daily Average Spend:</span>
+                  <span class="stat-val" id="stats-daily-avg">0.00</span>
+                </div>
+                <div class="stat-row">
+                  <span>Highest Expense Day:</span>
+                  <span
+                    class="stat-val"
+                    style="color: #f59e0b"
+                    id="stats-high-day"
+                    >Day 0 (0.00)</span
+                  >
+                </div>
+                <div
+                  class="stat-row"
+                  style="
+                    margin-top: 10px;
+                    padding-top: 10px;
+                    border-top: 1px dashed #475569;
+                    border-bottom: none;
+                  "
+                >
+                  <span>Current Year Total:</span>
+                  <span
+                    class="stat-val"
+                    style="color: #94a3b8"
+                    id="stats-year-total"
+                    >0.00</span
+                  >
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div id="view-calendar" class="view-panel">
+          <div class="card">
+            <div class="card-header">Monthly Calendar Overview</div>
+            <div class="calendar-grid" id="full-calendar"></div>
+          </div>
+        </div>
+
+        <div id="view-yearly" class="view-panel">
+          <div class="card">
+            <div class="card-header">Yearly Analytics Dashboard</div>
+            <p style="font-size: 13px; color: var(--text-muted)">
+              A macro-level view of your spending trends across the entire
+              selected year.
+            </p>
+            <div class="canvas-box" style="height: 350px; margin-top: 20px">
+              <canvas
+                id="yearlyChart"
+                width="800"
+                height="300"
+                style="width: 100%; height: 100%"
+              ></canvas>
+            </div>
+            <table class="yearly-table" id="yearly-summary-table">
+              <thead>
+                <tr>
+                  <th>Month</th>
+                  <th>Total Expenditure</th>
+                  <th>Daily Average</th>
+                  <th>Status vs Budget</th>
+                </tr>
+              </thead>
+              <tbody id="yearly-table-body"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <div id="view-charts" class="view-panel">
+          <div class="card">
+            <div class="card-header">Visual Monthly Data Analytics</div>
+            <p style="font-size: 13px; color: var(--text-muted)">
+              100% Offline processing. Visualizing your spending habits for the
+              selected month.
+            </p>
+            <div class="chart-grid">
+              <div class="canvas-box">
+                <h4
+                  style="
+                    position: absolute;
+                    top: 15px;
+                    left: 15px;
+                    font-size: 13px;
+                    color: var(--text-muted);
+                  "
+                >
+                  Category Distribution (Pie)
+                </h4>
+                <canvas id="pieChart" width="300" height="300"></canvas>
+              </div>
+              <div class="canvas-box">
+                <h4
+                  style="
+                    position: absolute;
+                    top: 15px;
+                    left: 15px;
+                    font-size: 13px;
+                    color: var(--text-muted);
+                  "
+                >
+                  Daily Spending Trend (Bar)
+                </h4>
+                <canvas
+                  id="barChart"
+                  width="400"
+                  height="300"
+                  style="width: 100%; height: 100%; margin-top: 20px"
+                ></canvas>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div id="view-fields" class="view-panel">
+          <div class="card">
+            <div class="card-header">Manage Expenditure Categories</div>
+            <p
+              style="
+                font-size: 13px;
+                color: var(--text-muted);
+                margin-bottom: 20px;
+              "
+            >
+              Customize tracking columns here. Renaming a category updates all
+              historical data safely.
+            </p>
+            <div style="display: flex; gap: 10px; margin-bottom: 20px">
+              <input
+                type="text"
+                id="new-field-name"
+                placeholder="Enter new category name..."
+                style="flex-grow: 1"
+              />
+              <button class="btn btn-primary" onclick="addField()">
+                + Add Category
+              </button>
+            </div>
+            <div class="field-list" id="field-list-container"></div>
+          </div>
+        </div>
+
+        <div id="view-gemini" class="view-panel">
+          <div class="card">
+            <div class="card-header">Gemini AI Financial Consultant</div>
+            <div class="ai-chat-container">
+              <p
+                style="
+                  font-size: 13px;
+                  color: var(--text-muted);
+                  margin-bottom: 5px;
+                "
+              >
+                The AI reads your exact text entries and numeric totals. Note
+                your budget limit.
+              </p>
+              <div class="quick-prompts">
+                <button
+                  class="btn btn-primary"
+                  onclick="sendPrompt('Generate a full comprehensive financial audit of this month. Mention my budget limit and how much is remaining.')"
+                >
+                  📄 Budget Audit
+                </button>
+                <button
+                  class="btn btn-primary"
+                  onclick="sendPrompt('Provide a Yearly summary. Based on all my data for this year, what are my general spending trends?')"
+                >
+                  📈 Yearly Insight
+                </button>
+                <button
+                  class="btn btn-accent"
+                  onclick="sendPrompt('Are there any unusual spending patterns or anomalies this month compared to my daily average?')"
+                >
+                  🔍 Find Anomalies
+                </button>
+                <button
+                  class="btn btn-accent"
+                  onclick="sendPrompt('Give me 3 strict, actionable strategies to cut costs specifically based on where I am spending the most right now.')"
+                >
+                  💡 Cost Cutting Tips
+                </button>
+              </div>
+              <div style="display: flex; gap: 10px; margin-top: 10px">
+                <input
+                  type="text"
+                  id="ai-custom-prompt"
+                  placeholder="Or type a specific custom question..."
+                  style="flex-grow: 1"
+                  onkeydown="if(event.key === 'Enter') askCustom()"
+                />
+                <button class="btn btn-primary" onclick="askCustom()">
+                  Ask AI
+                </button>
+              </div>
+              <div class="ai-response-box" id="ai-output">
+                Waiting for query... Ensure your Gemini API key is set in the
+                Tools tab.
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div id="view-tools" class="view-panel">
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 25px">
+            <div
+              class="card"
+              style="display: flex; flex-direction: column; gap: 20px"
+            >
+              <div class="card-header">System Settings & Data Management</div>
+
+              <div>
+                <label
+                  style="
+                    font-weight: 700;
+                    font-size: 13px;
+                    display: block;
+                    margin-bottom: 5px;
+                  "
+                  >1. Global Currency Symbol:</label
+                >
+                <select
+                  id="settings-currency"
+                  onchange="saveCurrency()"
+                  style="width: 100%"
+                >
+                  <option value="₹">₹ (Indian Rupee)</option>
+                  <option value="$">$ (US Dollar)</option>
+                  <option value="€">€ (Euro)</option>
+                  <option value="£">£ (British Pound)</option>
+                  <option value="¥">¥ (Japanese Yen)</option>
+                </select>
+              </div>
+              <hr style="border-top: 1px solid var(--border)" />
+
+              <div>
+                <label
+                  style="
+                    font-weight: 700;
+                    font-size: 13px;
+                    display: block;
+                    margin-bottom: 5px;
+                  "
+                  >2. Gemini API Key:</label
+                >
+                <div style="display: flex; gap: 10px">
+                  <input
+                    type="password"
+                    id="settings-api-key"
+                    placeholder="Paste Google AI Studio Key"
+                    style="flex-grow: 1"
+                  />
+                  <button class="btn btn-primary" onclick="saveAPIKey()">
+                    Save
+                  </button>
+                </div>
+              </div>
+              <hr style="border-top: 1px solid var(--border)" />
+
+              <div>
+                <label
+                  style="
+                    font-weight: 700;
+                    font-size: 13px;
+                    display: block;
+                    margin-bottom: 5px;
+                  "
+                  >3. Daily Reminder Time:</label
+                >
+                <div style="display: flex; gap: 10px">
+                  <input
+                    type="time"
+                    id="settings-reminder-time"
+                    value="21:00"
+                    onchange="saveReminder()"
+                  />
+                  <button class="btn btn-accent" onclick="enableAlerts()">
+                    Enable
+                  </button>
+                </div>
+              </div>
+              <hr style="border-top: 1px solid var(--border)" />
+
+              <div>
+                <label
+                  style="
+                    font-weight: 700;
+                    font-size: 13px;
+                    display: block;
+                    margin-bottom: 5px;
+                  "
+                  >4. Export Data (Current Month):</label
+                >
+                <div style="display: flex; gap: 10px">
+                  <button class="btn btn-primary" onclick="exportExcel()">
+                    📊 Excel (.xlsx)
+                  </button>
+                  <button class="btn btn-danger" onclick="exportPDF()">
+                    📄 PDF (.pdf)
+                  </button>
+                </div>
+              </div>
+              <hr style="border-top: 1px solid var(--border)" />
+
+              <div>
+                <label
+                  style="
+                    font-weight: 700;
+                    font-size: 13px;
+                    display: block;
+                    margin-bottom: 5px;
+                  "
+                  >5. Full Database Backup & Restore:</label
+                >
+                <div style="display: flex; flex-direction: column; gap: 10px">
+                  <button class="btn btn-primary" onclick="exportDB()">
+                    📥 Download Full JSON Backup
+                  </button>
+                  <div style="display: flex; gap: 10px">
+                    <input
+                      type="file"
+                      id="import-file"
+                      accept=".json"
+                      style="flex-grow: 1; padding: 6px"
+                    />
+                    <button class="btn btn-accent" onclick="importDB()">
+                      📤 Restore JSON
+                    </button>
+                  </div>
+                </div>
+              </div>
+              <hr style="border-top: 1px solid var(--border)" />
+
+              <div>
+                <label
+                  style="
+                    font-weight: 700;
+                    font-size: 13px;
+                    display: block;
+                    margin-bottom: 5px;
+                    color: var(--danger);
+                  "
+                  >6. Advanced Data Reset:</label
+                >
+                <div style="display: flex; gap: 10px">
+                  <button
+                    class="btn btn-danger"
+                    style="flex-grow: 1"
+                    onclick="clearCurrentMonth()"
+                  >
+                    Clear Month
+                  </button>
+                  <button
+                    class="btn btn-danger"
+                    style="flex-grow: 1"
+                    onclick="factoryReset()"
+                  >
+                    Factory Reset All
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <div class="card">
+              <div class="card-header">Advanced Calculator</div>
+              <div class="calc-wrapper">
+                <div class="calc-main">
+                  <div class="calc-screen" id="calc-display">0</div>
+                  <div class="calc-grid">
+                    <button class="calc-btn op" onclick="calcAction('C')">
+                      C
+                    </button>
+                    <button class="calc-btn op" onclick="calcAction('/')">
+                      /
+                    </button>
+                    <button class="calc-btn op" onclick="calcAction('*')">
+                      *
+                    </button>
+                    <button class="calc-btn op" onclick="calcAction('DEL')">
+                      ⌫
+                    </button>
+                    <button class="calc-btn" onclick="calcAction('7')">
+                      7
+                    </button>
+                    <button class="calc-btn" onclick="calcAction('8')">
+                      8
+                    </button>
+                    <button class="calc-btn" onclick="calcAction('9')">
+                      9
+                    </button>
+                    <button class="calc-btn op" onclick="calcAction('-')">
+                      -
+                    </button>
+                    <button class="calc-btn" onclick="calcAction('4')">
+                      4
+                    </button>
+                    <button class="calc-btn" onclick="calcAction('5')">
+                      5
+                    </button>
+                    <button class="calc-btn" onclick="calcAction('6')">
+                      6
+                    </button>
+                    <button class="calc-btn op" onclick="calcAction('+')">
+                      +
+                    </button>
+                    <button class="calc-btn" onclick="calcAction('1')">
+                      1
+                    </button>
+                    <button class="calc-btn" onclick="calcAction('2')">
+                      2
+                    </button>
+                    <button class="calc-btn" onclick="calcAction('3')">
+                      3
+                    </button>
+                    <button
+                      class="calc-btn eval"
+                      style="grid-row: span 2; height: 100%"
+                      onclick="calcAction('=')"
+                    >
+                      =
+                    </button>
+                    <button
+                      class="calc-btn"
+                      style="grid-column: span 2"
+                      onclick="calcAction('0')"
+                    >
+                      0
+                    </button>
+                    <button class="calc-btn" onclick="calcAction('.')">
+                      .
+                    </button>
+                  </div>
+                </div>
+                <div class="calc-history">
+                  <span
+                    style="
+                      font-weight: 700;
+                      font-size: 12px;
+                      color: var(--text-muted);
+                      margin-bottom: 10px;
+                    "
+                    >TAPE HISTORY</span
+                  >
+                  <div class="history-list" id="calc-history-list"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="toast" id="toast">✔️ Saved</div>
+
+    <script>
+      // --- TEXT TO NUMBER PARSER (THE CORE FIX) ---
+      // This takes ANY string like "500 milk" and extracts just the 500 for math.
+      function extractNumber(str) {
+        if (!str) return 0;
+        if (typeof str === "number") return str;
+        const match = String(str).match(/[-+]?[\d]*\.?\d+/);
+        return match ? parseFloat(match[0]) : 0;
+      }
+
+      // --- CONSTANTS & STATE ---
+      const DEFAULT_COLUMNS = [
+        "LIC/E.G./Cooker",
+        "MUTUAL FUND (SBI)/FUND/PETROL",
+        "MILK/VEG",
+        "SAVING/GIFT/CAKE",
+        "CHENNA/IRON/LAKHMI",
+        "MIXTURE/N.VEG/REPAIR",
+        "EXTRA/FLOUR/FLOWER",
+        "AMWAY/TIFFIN/MED.",
+        "DAHIBARA/TIFFIN/MILL",
+        "SCOOTY/SCHOOL/CABLE",
+        "GROCERY/CABLE/SCHOOL",
+        "CHAAT/GUPCUP/DOSA",
+        "THANDA/FRUIT/SWEET",
+        "NUAPATNA/KHATA/BOOK/STATIONARY",
+        "ASHRAM/SCHOOLFEES/R.D./KUMPI/E.B./H.R./TUITION/ORDER/MOMO",
+        "OTHER",
+      ];
+      const MONTHS = [
+        "January",
+        "February",
+        "March",
+        "April",
+        "May",
+        "June",
+        "July",
+        "August",
+        "September",
+        "October",
+        "November",
+        "December",
+      ];
+
+      let db = JSON.parse(localStorage.getItem("spend_lens_v2_data")) || {};
+      let columns =
+        JSON.parse(localStorage.getItem("spend_lens_v2_cols")) ||
+        DEFAULT_COLUMNS.slice();
+      let geminiAPIKey = localStorage.getItem("spend_lens_v2_api") || "";
+      let monthlyBudget =
+        parseFloat(localStorage.getItem("spend_lens_v2_budget")) || 50000;
+      let isDarkMode = localStorage.getItem("spend_lens_v2_theme") === "dark";
+      let currency = localStorage.getItem("spend_lens_v2_currency") || "₹";
+
+      let currentYear = new Date().getFullYear();
+      let currentMonth = new Date().getMonth() + 1;
+      let grandTotalMonth = 0;
+
+      // --- INIT ---
+      window.onload = () => {
+        if (isDarkMode) document.body.classList.add("dark-theme");
+        document.getElementById("input-year").value = currentYear;
+        document.getElementById("budget-input").value = monthlyBudget;
+        document.getElementById("settings-currency").value = currency;
+        updateCurrencyLabels();
+
+        const monthSelect = document.getElementById("select-month");
+        MONTHS.forEach((m, i) => {
+          let opt = document.createElement("option");
+          opt.value = i + 1;
+          opt.textContent = m;
+          if (i + 1 === currentMonth) opt.selected = true;
+          monthSelect.appendChild(opt);
+        });
+
+        if (geminiAPIKey)
+          document.getElementById("settings-api-key").value = geminiAPIKey;
+        document.getElementById("settings-reminder-time").value =
+          localStorage.getItem("spend_lens_v2_rem") || "21:00";
+
+        initKeyboardCalculator();
+        renderAll();
+        startReminderDaemon();
+      };
+
+      function toggleTheme() {
+        isDarkMode = !isDarkMode;
+        if (isDarkMode) {
+          document.body.classList.add("dark-theme");
+          localStorage.setItem("spend_lens_v2_theme", "dark");
+        } else {
+          document.body.classList.remove("dark-theme");
+          localStorage.setItem("spend_lens_v2_theme", "light");
+        }
+      }
+
+      function saveCurrency() {
+        currency = document.getElementById("settings-currency").value;
+        localStorage.setItem("spend_lens_v2_currency", currency);
+        updateCurrencyLabels();
+        renderAll();
+      }
+
+      function updateCurrencyLabels() {
+        document
+          .querySelectorAll(".currency-label")
+          .forEach((el) => (el.textContent = currency));
+      }
+
+      function renderAll() {
+        buildSpreadsheet();
+        buildCalendar();
+        renderFieldList();
+      }
+
+      // --- NAVIGATION ---
+      function switchTab(btn, target) {
+        document
+          .querySelectorAll(".nav-btn")
+          .forEach((b) => b.classList.remove("active"));
+        document
+          .querySelectorAll(".view-panel")
+          .forEach((p) => p.classList.remove("active"));
+        btn.classList.add("active");
+        document.getElementById(target).classList.add("active");
+
+        if (target === "view-calendar") buildCalendar();
+        if (target === "view-charts")
+          setTimeout(() => {
+            drawPieChart();
+            drawBarChart();
+          }, 100);
+        if (target === "view-yearly")
+          setTimeout(() => {
+            drawYearlyChart();
+            buildYearlyTable();
+          }, 100);
+      }
+
+      function updatePeriod() {
+        let yr = parseInt(document.getElementById("input-year").value);
+        if (!isNaN(yr)) currentYear = yr;
+        currentMonth = parseInt(document.getElementById("select-month").value);
+        renderAll();
+      }
+
+      function jumpToToday() {
+        let d = new Date();
+        document.getElementById("input-year").value = d.getFullYear();
+        document.getElementById("select-month").value = d.getMonth() + 1;
+        updatePeriod();
+        switchTab(document.querySelectorAll(".nav-btn")[0], "view-matrix");
+        setTimeout(() => {
+          let r = document.getElementById(`row-day-${d.getDate()}`);
+          if (r) {
+            r.scrollIntoView({ behavior: "smooth", block: "center" });
+            r.style.backgroundColor = "rgba(59, 130, 246, 0.2)";
+            setTimeout(() => {
+              r.style.backgroundColor = "";
+            }, 1500);
+          }
+        }, 100);
+      }
+
+      function updateBudget() {
+        monthlyBudget =
+          parseFloat(document.getElementById("budget-input").value) || 0;
+        localStorage.setItem("spend_lens_v2_budget", monthlyBudget);
+        calcTotals();
+      }
+
+      // --- MATRIX SPREADSHEET ---
+      function getDaysInMonth() {
+        return new Date(currentYear, currentMonth, 0).getDate();
+      }
+
+      function buildSpreadsheet() {
+        const head = document.getElementById("matrix-header");
+        head.innerHTML = "<th>Day</th>";
+        columns.forEach((col) => {
+          let th = document.createElement("th");
+          th.textContent = col;
+          head.appendChild(th);
+        });
+        head.innerHTML += "<th>Day Total</th>";
+
+        const tbody = document.getElementById("matrix-body");
+        tbody.innerHTML = "";
+        const days = getDaysInMonth();
+
+        for (let d = 1; d <= days; d++) {
+          let tr = document.createElement("tr");
+          tr.id = `row-day-${d}`;
+          let tdDay = document.createElement("td");
+          tdDay.textContent = d;
+          tr.appendChild(tdDay);
+
+          let dateKey = `${currentYear}-${String(currentMonth).padStart(
+            2,
+            "0"
+          )}-${String(d).padStart(2, "0")}`;
+          let dayData = db[dateKey] || {};
+
+          columns.forEach((col, idx) => {
+            let td = document.createElement("td");
+            let inp = document.createElement("input");
+            // TYPE IS TEXT to allow "500 milk"
+            inp.type = "text";
+            inp.className = "cell-input";
+            inp.dataset.day = d;
+            inp.dataset.colidx = idx;
+            inp.dataset.colname = col;
+            inp.value = dayData[col] || "";
+
+            inp.oninput = () => saveData(inp, d, col);
+
+            // ENTER KEY LOGIC
+            inp.onkeydown = (e) => {
+              if (e.key === "Enter") {
+                e.preventDefault();
+                let nextInp = document.querySelector(
+                  `input[data-day="${d + 1}"][data-colidx="${idx}"]`
+                );
+                if (nextInp) {
+                  nextInp.focus();
+                  nextInp.select();
+                }
+              }
+            };
+            td.appendChild(inp);
+            tr.appendChild(td);
+          });
+
+          let tdTot = document.createElement("td");
+          tdTot.id = `row-total-${d}`;
+          tdTot.textContent = `${currency}0.00`;
+          tr.appendChild(tdTot);
+          tbody.appendChild(tr);
+        }
+
+        let sumRow = document.createElement("tr");
+        sumRow.className = "summary-row";
+        let sumL = document.createElement("td");
+        sumL.textContent = "TOTAL";
+        sumRow.appendChild(sumL);
+        columns.forEach((_, i) => {
+          let td = document.createElement("td");
+          td.id = `col-total-${i}`;
+          td.textContent = `${currency}0.00`;
+          sumRow.appendChild(td);
+        });
+        let gTot = document.createElement("td");
+        gTot.id = "grid-grand-total";
+        gTot.textContent = `${currency}0.00`;
+        sumRow.appendChild(gTot);
+        tbody.appendChild(sumRow);
+
+        calcTotals();
+      }
+
+      let saveTmr;
+      function saveData(inp, d, col) {
+        let val = inp.value.trim(); // Saving exact string
+        let k = `${currentYear}-${String(currentMonth).padStart(
+          2,
+          "0"
+        )}-${String(d).padStart(2, "0")}`;
+
+        if (!db[k]) db[k] = {};
+        if (val === "") delete db[k][col];
+        else db[k][col] = val; // Store RAW text in DB
+
+        if (Object.keys(db[k]).length === 0) delete db[k];
+
+        localStorage.setItem("spend_lens_v2_data", JSON.stringify(db));
+        calcTotals();
+
+        const toast = document.getElementById("toast");
+        toast.style.opacity = "1";
+        clearTimeout(saveTmr);
+        saveTmr = setTimeout(() => {
+          toast.style.opacity = "0";
+        }, 1500);
+      }
+
+      function forceSave() {
+        localStorage.setItem("spend_lens_v2_data", JSON.stringify(db));
+        localStorage.setItem("spend_lens_v2_cols", JSON.stringify(columns));
+        alert("Database & Configuration Saved!");
+      }
+
+      function calcTotals() {
+        const days = getDaysInMonth();
+        let colTots = Array(columns.length).fill(0);
+        let gTot = 0;
+        let activeDaysCount = 0;
+        let highDay = 0;
+        let highAmount = 0;
+
+        for (let d = 1; d <= days; d++) {
+          let rSum = 0;
+          let k = `${currentYear}-${String(currentMonth).padStart(
+            2,
+            "0"
+          )}-${String(d).padStart(2, "0")}`;
+          let data = db[k] || {};
+
+          let hasData = false;
+          columns.forEach((col, i) => {
+            if (data[col]) {
+              // EXTRACT NUMBER FROM TEXT HERE
+              let v = extractNumber(data[col]);
+              rSum += v;
+              colTots[i] += v;
+              hasData = true;
+            }
+          });
+
+          if (hasData) activeDaysCount++;
+          if (rSum > highAmount) {
+            highAmount = rSum;
+            highDay = d;
+          }
+
+          document.getElementById(`row-total-${d}`).textContent =
+            rSum > 0 ? `${currency}${rSum.toFixed(2)}` : `${currency}0.00`;
+          gTot += rSum;
+        }
+
+        colTots.forEach((v, i) => {
+          document.getElementById(`col-total-${i}`).textContent =
+            v > 0 ? `${currency}${v.toFixed(2)}` : `${currency}0.00`;
+        });
+
+        grandTotalMonth = gTot;
+        document.getElementById(
+          "grid-grand-total"
+        ).textContent = `${currency}${gTot.toFixed(2)}`;
+        document.getElementById(
+          "header-grand-total"
+        ).textContent = `Month Total: ${currency}${gTot.toFixed(2)}`;
+        document.getElementById(
+          "stats-month-total"
+        ).textContent = `${currency}${gTot.toFixed(2)}`;
+
+        let avg = activeDaysCount > 0 ? gTot / activeDaysCount : 0;
+        document.getElementById(
+          "stats-daily-avg"
+        ).textContent = `${currency}${avg.toFixed(2)}`;
+        document.getElementById(
+          "stats-high-day"
+        ).textContent = `Day ${highDay} (${currency}${highAmount.toFixed(2)})`;
+
+        let yTot = 0;
+        let yPrefix = `${currentYear}-`;
+        Object.keys(db).forEach((k) => {
+          if (k.startsWith(yPrefix)) {
+            Object.values(db[k]).forEach((v) => {
+              yTot += extractNumber(v);
+            });
+          }
+        });
+        document.getElementById(
+          "stats-year-total"
+        ).textContent = `${currency}${yTot.toFixed(2)}`;
+
+        let pct = (gTot / monthlyBudget) * 100;
+        if (isNaN(pct) || !isFinite(pct)) pct = 0;
+
+        const bar = document.getElementById("budget-progress");
+        let displayPct = Math.min(pct, 100);
+        bar.style.width = displayPct + "%";
+
+        if (pct <= 50) bar.style.backgroundColor = "var(--accent)";
+        else if (pct <= 85) bar.style.backgroundColor = "var(--warning)";
+        else bar.style.backgroundColor = "var(--danger)";
+
+        document.getElementById(
+          "budget-spent"
+        ).textContent = `Spent: ${currency}${gTot.toFixed(0)}`;
+        document.getElementById(
+          "budget-rem"
+        ).textContent = `Rem: ${currency}${Math.max(
+          monthlyBudget - gTot,
+          0
+        ).toFixed(0)}`;
+        document.getElementById("budget-pct").textContent = `${pct.toFixed(
+          1
+        )}%`;
+      }
+
+      // --- YEARLY ANALYTICS ---
+      function getYearlyData() {
+        let monthlySums = Array(12).fill(0);
+        let yPrefix = `${currentYear}-`;
+        Object.keys(db).forEach((k) => {
+          if (k.startsWith(yPrefix)) {
+            let m = parseInt(k.split("-")[1]);
+            Object.values(db[k]).forEach((v) => {
+              monthlySums[m - 1] += extractNumber(v);
+            });
+          }
+        });
+        return monthlySums;
+      }
+
+      function drawYearlyChart() {
+        const canvas = document.getElementById("yearlyChart");
+        const ctx = canvas.getContext("2d");
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+        let monthlySums = getYearlyData();
+        let maxVal = Math.max(...monthlySums, monthlyBudget * 1.5, 1);
+        let barWidth = canvas.width / 12;
+        let pad = 15;
+        let bottomMargin = 30;
+
+        let budgetY =
+          canvas.height -
+          bottomMargin -
+          (monthlyBudget / maxVal) * (canvas.height - bottomMargin - 30);
+        ctx.beginPath();
+        ctx.moveTo(0, budgetY);
+        ctx.lineTo(canvas.width, budgetY);
+        ctx.strokeStyle = "rgba(239, 68, 68, 0.4)";
+        ctx.setLineDash([5, 5]);
+        ctx.lineWidth = 2;
+        ctx.stroke();
+        ctx.setLineDash([]);
+        ctx.fillStyle = "#ef4444";
+        ctx.font = "10px sans-serif";
+        ctx.textAlign = "left";
+        ctx.fillText("Budget Limit", 10, budgetY - 5);
+
+        monthlySums.forEach((val, idx) => {
+          let height = (val / maxVal) * (canvas.height - bottomMargin - 30);
+          let x = idx * barWidth + pad;
+          let y = canvas.height - bottomMargin - height;
+
+          ctx.fillStyle = val > monthlyBudget ? "#ef4444" : "#3b82f6";
+          ctx.fillRect(x, y, barWidth - pad * 2, height);
+          ctx.fillStyle = isDarkMode ? "#94a3b8" : "#64748b";
+          ctx.font = "11px sans-serif";
+          ctx.textAlign = "center";
+          ctx.fillText(
+            MONTHS[idx].substring(0, 3),
+            x + (barWidth - pad * 2) / 2,
+            canvas.height - 10
+          );
+          if (val > 0) {
+            ctx.fillStyle = isDarkMode ? "#f8fafc" : "#1e293b";
+            ctx.fillText(val.toFixed(0), x + (barWidth - pad * 2) / 2, y - 5);
+          }
+        });
+      }
+
+      function buildYearlyTable() {
+        let sums = getYearlyData();
+        let tbody = document.getElementById("yearly-table-body");
+        tbody.innerHTML = "";
+        let totalYear = 0;
+
+        sums.forEach((val, idx) => {
+          totalYear += val;
+          if (val > 0 || idx === currentMonth - 1) {
+            let tr = document.createElement("tr");
+            let daysInM = new Date(currentYear, idx + 1, 0).getDate();
+            let status =
+              val > monthlyBudget
+                ? `<span style="color:var(--danger); font-weight:bold;">Over Budget by ${currency}${(
+                    val - monthlyBudget
+                  ).toFixed(0)}</span>`
+                : `<span style="color:var(--accent); font-weight:bold;">Under Budget (Rem: ${currency}${(
+                    monthlyBudget - val
+                  ).toFixed(0)})</span>`;
+            tr.innerHTML = `<td><strong>${
+              MONTHS[idx]
+            }</strong></td><td>${currency}${val.toFixed(
+              2
+            )}</td><td>${currency}${(val / daysInM).toFixed(
+              2
+            )} / day</td><td>${status}</td>`;
+            tbody.appendChild(tr);
+          }
+        });
+        let trT = document.createElement("tr");
+        trT.style.backgroundColor = "var(--sidebar-bg)";
+        trT.style.color = "white";
+        trT.innerHTML = `<td><strong>YEAR TOTAL</strong></td><td><strong>${currency}${totalYear.toFixed(
+          2
+        )}</strong></td><td colspan="2"></td>`;
+        tbody.appendChild(trT);
+      }
+
+      // --- CALENDAR VIEW ---
+      function buildCalendar() {
+        const cal = document.getElementById("full-calendar");
+        cal.innerHTML = "";
+        const daysOfWeek = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+        daysOfWeek.forEach((d) => {
+          let h = document.createElement("div");
+          h.className = "cal-header";
+          h.textContent = d;
+          cal.appendChild(h);
+        });
+
+        let firstDay = new Date(currentYear, currentMonth - 1, 1).getDay();
+        let days = getDaysInMonth();
+        for (let i = 0; i < firstDay; i++) {
+          let empty = document.createElement("div");
+          empty.className = "cal-day empty";
+          cal.appendChild(empty);
+        }
+
+        for (let d = 1; d <= days; d++) {
+          let cell = document.createElement("div");
+          cell.className = "cal-day";
+          let k = `${currentYear}-${String(currentMonth).padStart(
+            2,
+            "0"
+          )}-${String(d).padStart(2, "0")}`;
+          let sum = 0;
+          if (db[k]) {
+            columns.forEach((col) => {
+              if (db[k][col]) sum += extractNumber(db[k][col]);
+            });
+          }
+
+          cell.innerHTML = `<div class="day-num">${d}</div><div class="day-val ${
+            sum === 0 ? "zero" : ""
+          }">${sum > 0 ? currency + sum.toFixed(0) : "-"}</div>`;
+          cell.onclick = () => {
+            switchTab(document.querySelectorAll(".nav-btn")[0], "view-matrix");
+            setTimeout(() => {
+              let r = document.getElementById(`row-day-${d}`);
+              if (r) {
+                r.scrollIntoView({ behavior: "smooth", block: "center" });
+                r.style.backgroundColor = "rgba(59, 130, 246, 0.2)";
+                setTimeout(() => {
+                  r.style.backgroundColor = "";
+                }, 1500);
+              }
+            }, 50);
+          };
+          cal.appendChild(cell);
+        }
+      }
+
+      // --- DATA ANALYTICS CHARTS ---
+      function getChartData() {
+        let monthPrefix = `${currentYear}-${String(currentMonth).padStart(
+          2,
+          "0"
+        )}-`;
+        let colSums = Array(columns.length).fill(0);
+        let dailySums = Array(getDaysInMonth()).fill(0);
+
+        Object.keys(db).forEach((key) => {
+          if (key.startsWith(monthPrefix)) {
+            let day = parseInt(key.split("-")[2]);
+            columns.forEach((col, idx) => {
+              if (db[key][col]) {
+                let v = extractNumber(db[key][col]);
+                colSums[idx] += v;
+                dailySums[day - 1] += v;
+              }
+            });
+          }
+        });
+        return { colSums, dailySums };
+      }
+
+      function drawPieChart() {
+        const canvas = document.getElementById("pieChart");
+        const ctx = canvas.getContext("2d");
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        const { colSums } = getChartData();
+        let total = colSums.reduce((a, b) => a + b, 0);
+        if (total === 0) {
+          ctx.fillStyle = isDarkMode ? "#94a3b8" : "#64748b";
+          ctx.textAlign = "center";
+          ctx.font = "14px sans-serif";
+          ctx.fillText(
+            "No Data Available",
+            canvas.width / 2,
+            canvas.height / 2
+          );
+          return;
+        }
+
+        const colors = [
+          "#3b82f6",
+          "#10b981",
+          "#f59e0b",
+          "#ef4444",
+          "#8b5cf6",
+          "#ec4899",
+          "#14b8a6",
+          "#f97316",
+          "#6366f1",
+          "#84cc16",
+        ];
+        let startAngle = 0;
+        let cx = canvas.width / 2;
+        let cy = canvas.height / 2;
+        let radius = Math.min(cx, cy) - 20;
+
+        colSums.forEach((val, idx) => {
+          if (val > 0) {
+            let sliceAngle = (val / total) * 2 * Math.PI;
+            ctx.beginPath();
+            ctx.moveTo(cx, cy);
+            ctx.arc(cx, cy, radius, startAngle, startAngle + sliceAngle);
+            ctx.closePath();
+            ctx.fillStyle = colors[idx % colors.length];
+            ctx.fill();
+            if (sliceAngle > 0.2) {
+              let midAngle = startAngle + sliceAngle / 2;
+              let tx = cx + Math.cos(midAngle) * (radius * 0.7);
+              let ty = cy + Math.sin(midAngle) * (radius * 0.7);
+              ctx.fillStyle = "#ffffff";
+              ctx.font = "bold 10px sans-serif";
+              ctx.textAlign = "center";
+              ctx.fillText(columns[idx].substring(0, 4), tx, ty);
+            }
+            startAngle += sliceAngle;
+          }
+        });
+      }
+
+      function drawBarChart() {
+        const canvas = document.getElementById("barChart");
+        const ctx = canvas.getContext("2d");
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        const { dailySums } = getChartData();
+        let maxVal = Math.max(...dailySums, 1);
+        let barWidth = canvas.width / dailySums.length;
+        let pad = 4;
+        let bottomMargin = 30;
+
+        dailySums.forEach((val, idx) => {
+          let height = (val / maxVal) * (canvas.height - bottomMargin - 20);
+          let x = idx * barWidth + pad;
+          let y = canvas.height - bottomMargin - height;
+          ctx.fillStyle =
+            val === Math.max(...dailySums) ? "#10b981" : "#3b82f6";
+          ctx.fillRect(x, y, barWidth - pad * 2, height);
+          ctx.fillStyle = isDarkMode ? "#94a3b8" : "#64748b";
+          ctx.font = "10px sans-serif";
+          ctx.textAlign = "center";
+          ctx.fillText(
+            idx + 1,
+            x + (barWidth - pad * 2) / 2,
+            canvas.height - 10
+          );
+        });
+      }
+
+      // --- MANAGE FIELDS ---
+      function renderFieldList() {
+        const c = document.getElementById("field-list-container");
+        c.innerHTML = "";
+        columns.forEach((col, idx) => {
+          let item = document.createElement("div");
+          item.className = "field-item";
+          item.innerHTML = `<span style="color: var(--text-main);">${col}</span><div class="field-actions"><button class="btn btn-primary" style="padding: 6px 12px;" onclick="renameField(${idx})">Rename</button><button class="btn btn-danger" style="padding: 6px 12px;" onclick="deleteField(${idx})">Delete</button></div>`;
+          c.appendChild(item);
+        });
+      }
+      function addField() {
+        let val = document.getElementById("new-field-name").value.trim();
+        if (!val) return;
+        if (columns.includes(val)) return alert("Category exists!");
+        columns.push(val);
+        document.getElementById("new-field-name").value = "";
+        saveColsAndRebuild();
+      }
+      function renameField(idx) {
+        let old = columns[idx];
+        let nw = prompt(`Rename "${old}" to:`, old);
+        if (!nw || nw.trim() === "" || nw === old) return;
+        nw = nw.trim();
+        if (columns.includes(nw)) return alert("Name exists!");
+        Object.keys(db).forEach((date) => {
+          if (db[date][old] !== undefined) {
+            db[date][nw] = db[date][old];
+            delete db[date][old];
+          }
+        });
+        columns[idx] = nw;
+        localStorage.setItem("spend_lens_v2_data", JSON.stringify(db));
+        saveColsAndRebuild();
+      }
+      function deleteField(idx) {
+        if (confirm(`Delete "${columns[idx]}"?`)) {
+          columns.splice(idx, 1);
+          saveColsAndRebuild();
+        }
+      }
+      function saveColsAndRebuild() {
+        localStorage.setItem("spend_lens_v2_cols", JSON.stringify(columns));
+        renderAll();
+      }
+
+      // --- GEMINI AI ---
+      function saveAPIKey() {
+        geminiAPIKey = document.getElementById("settings-api-key").value.trim();
+        localStorage.setItem("spend_lens_v2_api", geminiAPIKey);
+        alert("API Key Saved!");
+      }
+      function getContextStr() {
+        let pre = `${currentYear}-${String(currentMonth).padStart(2, "0")}-`;
+        let ctx = `User's Monthly Budget Limit: ${currency}${monthlyBudget}\nTotal Spent This Month: ${currency}${grandTotalMonth}\nRemaining Budget: ${currency}${
+          monthlyBudget - grandTotalMonth
+        }\n\n`;
+        let sums = getYearlyData();
+        let ytd = sums.reduce((a, b) => a + b, 0);
+        ctx += `Year To Date (${currentYear}) Total: ${currency}${ytd}\n\nCategories Tracked: ${columns.join(
+          ", "
+        )}\n\nDay-by-Day Data for ${
+          MONTHS[currentMonth - 1]
+        } ${currentYear}:\n`;
+        Object.keys(db).forEach((k) => {
+          if (k.startsWith(pre)) ctx += `${k}: ${JSON.stringify(db[k])}\n`;
+        });
+        return ctx;
+      }
+      async function fetchAI(prompt) {
+        if (!geminiAPIKey)
+          return "⚠️ Error: Save your Gemini API Key in the Tools tab.";
+        document.getElementById("ai-output").innerHTML =
+          "<i>Connecting to AI...</i>";
+        try {
+          const res = await fetch(
+            `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${geminiAPIKey}`,
+            {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                contents: [{ parts: [{ text: prompt }] }],
+              }),
+            }
+          );
+          const data = await res.json();
+          if (data.error) return `API Error: ${data.error.message}`;
+          if (data.candidates)
+            return data.candidates[0].content.parts[0].text
+              .replace(
+                /\*\*(.*?)\*\*/g,
+                "<strong style='color:var(--primary);'>$1</strong>"
+              )
+              .replace(/\n/g, "<br>");
+          return "Error: Empty response.";
+        } catch (e) {
+          return "Network Error: Could not reach Gemini.";
+        }
+      }
+      async function sendPrompt(query) {
+        document.getElementById("ai-output").innerHTML = await fetchAI(
+          `You are Spend Lens AI. Reply based on data: "${query}"\nProvide exact figures. Note budget and currency (${currency}).\n\n${getContextStr()}`
+        );
+      }
+      async function askCustom() {
+        let q = document.getElementById("ai-custom-prompt").value.trim();
+        if (!q) return;
+        document.getElementById("ai-custom-prompt").value = "";
+        let ans = await fetchAI(
+          `You are Spend Lens AI. User asks: "${q}"\nUse data to answer accurately. Note currency (${currency}).\n\n${getContextStr()}`
+        );
+        document.getElementById(
+          "ai-output"
+        ).innerHTML = `<strong>Q: ${q}</strong><br><br>${ans}`;
+      }
+
+      // --- EXPORTS ---
+      function getExportData() {
+        const days = getDaysInMonth();
+        let head = ["Day", ...columns, "Day Total"];
+        let body = [];
+        let colTots = Array(columns.length).fill(0);
+        let gTot = 0;
+        for (let d = 1; d <= days; d++) {
+          let row = [d];
+          let rSum = 0;
+          let k = `${currentYear}-${String(currentMonth).padStart(
+            2,
+            "0"
+          )}-${String(d).padStart(2, "0")}`;
+          let data = db[k] || {};
+          columns.forEach((col, i) => {
+            let raw = data[col] || "";
+            let v = extractNumber(raw);
+            row.push(raw);
+            rSum += v;
+            colTots[i] += v;
+          });
+          row.push(rSum || "");
+          gTot += rSum;
+          body.push(row);
+        }
+        body.push(["TOTAL", ...colTots, gTot]);
+        return { head: [head], body: body };
+      }
+      function exportExcel() {
+        if (typeof XLSX === "undefined") return alert("Library missing.");
+        const data = getExportData();
+        const ws = XLSX.utils.aoa_to_sheet([...data.head, ...data.body]);
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, `${MONTHS[currentMonth - 1]}`);
+        XLSX.writeFile(
+          wb,
+          `SpendLens_${MONTHS[currentMonth - 1]}_${currentYear}.xlsx`
+        );
+      }
+      function exportPDF() {
+        if (!window.jspdf || !window.jspdf.jsPDF)
+          return alert("Library missing.");
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF("l", "pt", "a4");
+        const data = getExportData();
+        doc.setFontSize(14);
+        doc.text(
+          `Spend Lens 2.0 - Expenditure Report (${
+            MONTHS[currentMonth - 1]
+          } ${currentYear})`,
+          40,
+          30
+        );
+        doc.autoTable({
+          head: data.head,
+          body: data.body,
+          startY: 40,
+          styles: { fontSize: 7, cellPadding: 2, overflow: "linebreak" },
+          headStyles: { fillColor: [59, 130, 246] },
+          footStyles: {
+            fillColor: [15, 23, 42],
+            textColor: [255, 255, 255],
+            fontStyle: "bold",
+          },
+        });
+        doc.save(`SpendLens_${MONTHS[currentMonth - 1]}_${currentYear}.pdf`);
+      }
+
+      // --- CALCULATOR ---
+      let calcStr = "";
+      function calcAction(val) {
+        const screen = document.getElementById("calc-display");
+        if (val === "C") {
+          calcStr = "";
+          screen.textContent = "0";
+        } else if (val === "DEL") {
+          calcStr = calcStr.slice(0, -1);
+          screen.textContent = calcStr || "0";
+        } else if (val === "=") {
+          try {
+            let res = String(new Function(`return (${calcStr})`)());
+            document.getElementById("calc-history-list").innerHTML =
+              `<div class="history-item">${calcStr} <br> <strong style="color:var(--primary); font-size:15px;">= ${res}</strong></div>` +
+              document.getElementById("calc-history-list").innerHTML;
+            calcStr = res;
+            screen.textContent = calcStr;
+          } catch (e) {
+            screen.textContent = "Err";
+            calcStr = "";
+          }
+        } else {
+          calcStr += val;
+          screen.textContent = calcStr;
+        }
+      }
+      function initKeyboardCalculator() {
+        document.addEventListener("keydown", (e) => {
+          if (
+            document
+              .getElementById("view-tools")
+              .classList.contains("active") &&
+            !e.target.matches("input")
+          ) {
+            const valid = "0123456789+-*/.";
+            if (valid.includes(e.key)) calcAction(e.key);
+            else if (e.key === "Enter" || e.key === "=") calcAction("=");
+            else if (e.key === "Backspace") calcAction("DEL");
+            else if (e.key === "Escape" || e.key.toLowerCase() === "c")
+              calcAction("C");
+          }
+        });
+      }
+
+      // --- RESETS & BACKUPS ---
+      function clearCurrentMonth() {
+        if (
+          confirm(
+            `Delete ALL data for ${MONTHS[currentMonth - 1]} ${currentYear}?`
+          )
+        ) {
+          let mPre = `${currentYear}-${String(currentMonth).padStart(2, "0")}-`;
+          Object.keys(db).forEach((k) => {
+            if (k.startsWith(mPre)) delete db[k];
+          });
+          forceSave();
+          renderAll();
+          alert("Month cleared.");
+        }
+      }
+      function factoryReset() {
+        if (prompt("Type 'RESET' to Factory Reset.") === "RESET") {
+          localStorage.clear();
+          db = {};
+          columns = DEFAULT_COLUMNS.slice();
+          monthlyBudget = 50000;
+          document.getElementById("budget-input").value = 50000;
+          renderAll();
+          alert("Factory reset complete.");
+        }
+      }
+      function saveReminder() {
+        localStorage.setItem(
+          "spend_lens_v2_rem",
+          document.getElementById("settings-reminder-time").value
+        );
+      }
+      function enableAlerts() {
+        if (Notification)
+          Notification.requestPermission().then((s) => {
+            if (s === "granted") alert("Alerts Enabled!");
+          });
+      }
+      function startReminderDaemon() {
+        setInterval(() => {
+          let d = new Date();
+          let tm = `${String(d.getHours()).padStart(2, "0")}:${String(
+            d.getMinutes()
+          ).padStart(2, "0")}`;
+          let tgt = localStorage.getItem("spend_lens_v2_rem") || "21:00";
+          if (
+            tm === tgt &&
+            !db[
+              `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(
+                2,
+                "0"
+              )}-${String(d.getDate()).padStart(2, "0")}`
+            ] &&
+            Notification.permission === "granted"
+          )
+            new Notification("Spend Lens", { body: "Input today's expenses!" });
+        }, 60000);
+      }
+      function exportDB() {
+        let dataStr =
+          "data:text/json;charset=utf-8," +
+          encodeURIComponent(
+            JSON.stringify({
+              version: 2,
+              columns,
+              data: db,
+              budget: monthlyBudget,
+              currency,
+            })
+          );
+        let a = document.createElement("a");
+        a.href = dataStr;
+        a.download = `SpendLens_Backup_${
+          new Date().toISOString().split("T")[0]
+        }.json`;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+      }
+      function importDB() {
+        const file = document.getElementById("import-file").files[0];
+        if (!file) return alert("Select .json file.");
+        const reader = new FileReader();
+        reader.onload = function (e) {
+          try {
+            let raw = JSON.parse(e.target.result);
+            if (confirm("Overwrite existing data?")) {
+              if (raw.version) {
+                columns = raw.columns;
+                db = raw.data;
+                if (raw.budget) {
+                  monthlyBudget = raw.budget;
+                  document.getElementById("budget-input").value = monthlyBudget;
+                }
+                if (raw.currency) {
+                  currency = raw.currency;
+                  document.getElementById("settings-currency").value = currency;
+                  updateCurrencyLabels();
+                }
+              } else {
+                db = raw;
+              }
+              localStorage.setItem(
+                "spend_lens_v2_cols",
+                JSON.stringify(columns)
+              );
+              localStorage.setItem("spend_lens_v2_data", JSON.stringify(db));
+              localStorage.setItem("spend_lens_v2_budget", monthlyBudget);
+              localStorage.setItem("spend_lens_v2_currency", currency);
+              alert("Data Restored!");
+              renderAll();
+            }
+          } catch (err) {
+            alert("Invalid backup file.");
+          }
+        };
+        reader.readAsText(file);
+      }
+    </script>
+  </body>
+</html>
